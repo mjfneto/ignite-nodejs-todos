@@ -30,7 +30,10 @@ app.post("/users", (request, response) => {
 });
 
 app.get("/todos", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+  const { user } = request;
+  const { todos } = user;
+
+  return response.json(todos);
 });
 
 app.post("/todos", checksExistsUserAccount, (request, response) => {
