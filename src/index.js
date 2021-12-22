@@ -7,6 +7,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/todos", checksExistsUserAccount);
+app.use("/todos/:id", checksExistsTodo);
 
 const users = [];
 
@@ -29,14 +31,14 @@ app.post("/users", (request, response) => {
   return response.status(201).json(newUser);
 });
 
-app.get("/todos", checksExistsUserAccount, (request, response) => {
+app.get("/todos", (request, response) => {
   const { user } = request;
   const { todos } = user;
 
   return response.json(todos);
 });
 
-app.post("/todos", checksExistsUserAccount, (request, response) => {
+app.post("/todos", (request, response) => {
   const { user } = request;
   const { title, deadline } = request.body;
 
@@ -52,50 +54,35 @@ app.post("/todos", checksExistsUserAccount, (request, response) => {
   return response.status(201).json(todo);
 });
 
-app.put(
-  "/todos/:id",
-  checksExistsUserAccount,
-  checksExistsTodo,
-  (request, response) => {
-    const { title, deadline } = request.body;
-    const { todo } = request;
+app.put("/todos/:id", (request, response) => {
+  const { title, deadline } = request.body;
+  const { todo } = request;
 
-    todo.title = title;
-    todo.deadline = new Date(deadline);
+  todo.title = title;
+  todo.deadline = new Date(deadline);
 
-    return response.json(todo);
-  }
-);
+  return response.json(todo);
+});
 
-app.patch(
-  "/todos/:id/done",
-  checksExistsUserAccount,
-  checksExistsTodo,
-  (request, response) => {
-    const { todo } = request;
+app.patch("/todos/:id/done", (request, response) => {
+  const { todo } = request;
 
-    todo.done = true;
+  todo.done = true;
 
-    return response.json(todo);
-  }
-);
+  return response.json(todo);
+});
 
-app.delete(
-  "/todos/:id",
-  checksExistsUserAccount,
-  checksExistsTodo,
-  (request, response) => {
-    const { user } = request;
+app.delete("/todos/:id", (request, response) => {
+  const { user } = request;
 
-    const index = user.todos.findIndex(
-      byMatchingProp("id")(request.params)(isEqual)
-    );
+  const index = user.todos.findIndex(
+    byMatchingProp("id")(request.params)(isEqual)
+  );
 
-    user.todos.splice(index, 1);
+  user.todos.splice(index, 1);
 
-    return response.status(204).send();
-  }
-);
+  return response.status(204).send();
+});
 
 module.exports = app;
 
