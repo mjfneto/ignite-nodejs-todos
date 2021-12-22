@@ -7,12 +7,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/todos", checksExistsUserAccount);
+app.use("/todos/:id", checksExistsTodo);
 
 const users = [];
-
-function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
-}
 
 app.post("/users", (request, response) => {
   const { name, username } = request.body;
@@ -33,24 +31,119 @@ app.post("/users", (request, response) => {
   return response.status(201).json(newUser);
 });
 
-app.get("/todos", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+app.get("/todos", (request, response) => {
+  const { user } = request;
+  const { todos } = user;
+
+  return response.json(todos);
 });
 
-app.post("/todos", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+app.post("/todos", (request, response) => {
+  const { user } = request;
+  const { title, deadline } = request.body;
+
+  const todo = {
+    id: uuidv4(),
+    title,
+    done: false,
+    deadline: new Date(deadline),
+    created_at: new Date(),
+  };
+  user.todos.push(todo);
+
+  return response.status(201).json(todo);
 });
 
-app.put("/todos/:id", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+app.put("/todos/:id", (request, response) => {
+  const { title, deadline } = request.body;
+  const { todo } = request;
+
+  todo.title = title;
+  todo.deadline = new Date(deadline);
+
+  return response.json(todo);
 });
 
-app.patch("/todos/:id/done", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+app.patch("/todos/:id/done", (request, response) => {
+  const { todo } = request;
+
+  todo.done = true;
+
+  return response.json(todo);
 });
 
-app.delete("/todos/:id", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+app.delete("/todos/:id", (request, response) => {
+  const { user } = request;
+
+  const index = user.todos.findIndex(
+    byMatchingProp("id")(request.params)(isEqual)
+  );
+
+  user.todos.splice(index, 1);
+
+  return response.status(204).send();
 });
 
 module.exports = app;
+
+// Middlewares
+
+function checksExistsUserAccount(request, response, next) {
+  const user = users.find(byMatchingProp("username")(request.headers)(isEqual));
+
+  if (!user)
+    return response.status(404).json({
+      error: "Invalid username: not found",
+    });
+
+  request.user = user;
+
+  next();
+}
+
+function checksExistsTodo(request, response, next) {
+  const { user } = request;
+  const todo = user.todos.find(byMatchingProp("id")(request.params)(isEqual));
+
+  if (!todo)
+    return response.status(404).json({
+      error: "Invalid task ID: not found",
+    });
+
+  request.todo = todo;
+
+  next();
+}
+
+// Library
+
+// Array callbacks
+function byMatchingProp(property) {
+  return function matchingPredicate(target) {
+    return function predicateFunc(fn) {
+      return function applyPredicate(item) {
+        return fn(item[property], target[property]);
+      };
+    };
+  };
+}
+
+function isEqual(a, b) {
+  return a == b;
+}
+
+function isGreater(a, b) {
+  return a > b;
+}
+
+function isLess(a, b) {
+  return a < b;
+}
+
+function isGreaterOrEqual(a, b) {
+  return a >= b;
+}
+
+function isLessOrEqual(a, b) {
+  return a <= b;
+}
