@@ -80,9 +80,22 @@ app.patch(
   }
 );
 
-app.delete("/todos/:id", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
-});
+app.delete(
+  "/todos/:id",
+  checksExistsUserAccount,
+  checksExistsTodo,
+  (request, response) => {
+    const { user } = request;
+
+    const index = user.todos.findIndex(
+      byMatchingProp("id")(request.params)(isEqual)
+    );
+
+    user.todos.splice(index, 1);
+
+    return response.status(204).send();
+  }
+);
 
 module.exports = app;
 
