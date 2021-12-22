@@ -10,10 +10,6 @@ app.use(express.json());
 
 const users = [];
 
-function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
-}
-
 app.post("/users", (request, response) => {
   const { name, username } = request.body;
   const user = users.find((u) => u.username == username);
@@ -38,7 +34,19 @@ app.get("/todos", checksExistsUserAccount, (request, response) => {
 });
 
 app.post("/todos", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+  const { user } = request;
+  const { title, deadline } = request.body;
+
+  const todo = {
+    id: uuidv4(),
+    title,
+    done: false,
+    deadline: new Date(deadline),
+    created_at: new Date(),
+  };
+  user.todos.push(todo);
+
+  return response.status(201).json(todo);
 });
 
 app.put("/todos/:id", checksExistsUserAccount, (request, response) => {
@@ -54,3 +62,51 @@ app.delete("/todos/:id", checksExistsUserAccount, (request, response) => {
 });
 
 module.exports = app;
+
+// Middlewares
+
+function checksExistsUserAccount(request, response, next) {
+  const user = users.find(byMatchingProp("username")(request.headers)(isEqual));
+
+  if (!user)
+    return response.status(404).json({
+      error: "Invalid username: not found",
+    });
+
+  request.user = user;
+
+  next();
+}
+
+// Library
+
+// Array callbacks
+function byMatchingProp(property) {
+  return function matchingPredicate(target) {
+    return function predicateFunc(fn) {
+      return function applyPredicate(item) {
+        return fn(item[property], target[property]);
+      };
+    };
+  };
+}
+
+function isEqual(a, b) {
+  return a == b;
+}
+
+function isGreater(a, b) {
+  return a > b;
+}
+
+function isLess(a, b) {
+  return a < b;
+}
+
+function isGreaterOrEqual(a, b) {
+  return a >= b;
+}
+
+function isLessOrEqual(a, b) {
+  return a <= b;
+}
