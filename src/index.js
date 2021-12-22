@@ -52,9 +52,20 @@ app.post("/todos", checksExistsUserAccount, (request, response) => {
   return response.status(201).json(todo);
 });
 
-app.put("/todos/:id", checksExistsUserAccount, (request, response) => {
-  // Complete aqui
-});
+app.put(
+  "/todos/:id",
+  checksExistsUserAccount,
+  checksExistsTodo,
+  (request, response) => {
+    const { title, deadline } = request.body;
+    const { todo } = request;
+
+    todo.title = title;
+    todo.deadline = new Date(deadline);
+
+    return response.json(todo);
+  }
+);
 
 app.patch("/todos/:id/done", checksExistsUserAccount, (request, response) => {
   // Complete aqui
@@ -77,6 +88,20 @@ function checksExistsUserAccount(request, response, next) {
     });
 
   request.user = user;
+
+  next();
+}
+
+function checksExistsTodo(request, response, next) {
+  const { user } = request;
+  const todo = user.todos.find(byMatchingProp("id")(request.params)(isEqual));
+
+  if (!todo)
+    return response.status(404).json({
+      error: "Invalid task ID: not found",
+    });
+
+  request.todo = todo;
 
   next();
 }
